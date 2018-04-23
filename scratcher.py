@@ -18,15 +18,18 @@ class Scratcher(object):
         self.domain = self.arguments.domain
         if not self.arguments.extension:
             self.arguments.extension = 'pdf'
+        if not self.arguments.output:
+            self.arguments.output = ''
         self.author = '/Author'
         self.https = 'https://'
 
     def returnpage(self, url=None):
         if not url:
             request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension, headers=self.headers)
+
         else:
             try:
-                request = requests.get(self.domain, headers=self.headers)
+                request = requests.get(url, headers=self.headers)
             except requests.exceptions.ConnectionError:
                 sys.exit("\nThere was an error when trying to connect to the domain. Please confirm if the domain is correctly written.\n")
 
@@ -123,6 +126,7 @@ class Scratcher(object):
             sct.verifypdf(docs)
             npages = sct.returlnextp(obj)
             for page in npages:
+                print(page)
                 obj = sct.returnpage(page)
                 docs = sct.returldocs(obj)
                 sct.verifypdf(docs)
