@@ -28,10 +28,8 @@ class Scratcher(object):
             request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension, headers=self.headers)
 
         else:
-            try:
-                request = requests.get(url, headers=self.headers)
-            except requests.exceptions.ConnectionError:
-                sys.exit("\nThere was an error when trying to connect to the domain. Please confirm if the domain is correctly written.\n")
+            request = requests.get(url, headers=self.headers)
+
 
         bsobj = BeautifulSoup(request.text, "html.parser")
 
@@ -72,9 +70,8 @@ class Scratcher(object):
             request = requests.get(url)
             if request.headers['Content-Type'] == 'text/html':
                 return None
-        except Exception as e:
-            print(e)
-            return None
+        except requests.exceptions.ConnectionError:
+            sys.exit("\nThere was an error when trying to connect to the domain. Please confirm if the domain is correctly written.\n")
         try:
             objbyte = BytesIO(request.content)
         except Exception as e:
@@ -116,22 +113,24 @@ class Scratcher(object):
         if doc.getDocumentInfo() is not None:
             if self.author in doc.getDocumentInfo().keys():
                 print(doc.getDocumentInfo()[self.author])
+                print(doc.getDocumentInfo()['/CreationDate'])
 
     def main(argus):
         sct = Scratcher(argus)
         obj = sct.returnpage()
         docs = sct.returldocs(obj)
         if docs:
-            print(docs)
-            sct.verifypdf(docs)
             npages = sct.returlnextp(obj)
             for page in npages:
                 print(page)
                 obj = sct.returnpage(page)
-                docs = sct.returldocs(obj)
-                sct.verifypdf(docs)
+                docs += sct.returldocs(obj)
+            print(len(docs))
+            sct.verifypdf(docs)
         else:
             print("\nIt seems you are unlucky!!\n")
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="scratcher.py")
     parser.add_argument('-d', '--domain',  help='a domain to be searched',required=True)
