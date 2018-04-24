@@ -114,6 +114,7 @@ class Scratcher(object):
             if self.author in doc.getDocumentInfo().keys():
                 print(doc.getDocumentInfo()[self.author])
                 print(doc.getDocumentInfo()['/CreationDate'])
+                
 
     def main(argus):
         sct = Scratcher(argus)
