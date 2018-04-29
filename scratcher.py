@@ -2,11 +2,13 @@ import requests
 import argparse
 import os
 import sys
+import warnings
+import time
 
 from io import BytesIO
 from bs4 import BeautifulSoup
 from PyPDF2 import PdfFileReader
-
+from collections import namedtuple
 
 class Scratcher(object):
 
@@ -14,14 +16,17 @@ class Scratcher(object):
         self.url = 'https://www.google.com'
         self.par = '/search?q='
         self.arguments = arg
-        self.headers= {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML like Gecko) Chrome/23.0.1271.64 Safari/537.11", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3","Accept-Encoding": "none","Accept-Language": "en-US,en;q=0.8","Connection": "keep-alive"}
+        self.headers= {"User-Agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3","Accept-Encoding": "none","Accept-Language": "en-US,en;q=0.8","Connection": "keep-alive"}
         self.domain = self.arguments.domain
         if not self.arguments.extension:
             self.arguments.extension = 'pdf'
         if not self.arguments.output:
             self.arguments.output = ''
         self.author = '/Author'
+        self.creation = '/CreationDate'
         self.https = 'https://'
+        self.pdf = namedtuple('PDF', 'name author creation')
+        self.doc = []
 
     def returnpage(self, url=None):
         if not url:
@@ -29,8 +34,6 @@ class Scratcher(object):
 
         else:
             request = requests.get(url, headers=self.headers)
-
-
         bsobj = BeautifulSoup(request.text, "html.parser")
 
         return bsobj
@@ -51,23 +54,23 @@ class Scratcher(object):
             if pdf is 1:
                 print("\n Unknown error")
             elif pdf is not None:
-                self.parsepdf(pdf)
+                self.parsepdf(pdf, url.rsplit('/')[-1])
             else:
-                print("\n Content-type is of the response is: html")
+                print("\n Content-type of the response is: html")
         else:
             for item in url:
-                print(item)
+                #print(item)
                 pdf = Scratcher.downloadpdf(item)
                 if pdf is 1:
                     print("\n Unknown error")
                 elif pdf is not None:
-                    self.parsepdf(pdf)
+                    self.parsepdf(pdf, item.rsplit('/')[-1])
                 else:
-                    print("\n Content-type is of the response is: html")
+                    print("\n Content-type of the response is: html")
 
     def downloadpdf(url):
         try:
-            request = requests.get(url)
+            request = requests.get(url, verify=False)
             if request.headers['Content-Type'] == 'text/html':
                 return None
         except requests.exceptions.ConnectionError:
@@ -78,7 +81,10 @@ class Scratcher(object):
             print(e)
             return None
         try:
+            s_stdout = sys.stdout
+            sys.stdout = BytesIO()
             pdf = PdfFileReader(objbyte)
+            sys.stdout = s_stdout
         except Exception as e:
             print(e)
             return None
@@ -107,14 +113,17 @@ class Scratcher(object):
 
         return pdf
 
-    def parsepdf(self, doc):
-        if doc.isEncrypted is True:
-          doc.decrypt('')
+    def parsepdf(self, doc, name):
         if doc.getDocumentInfo() is not None:
             if self.author in doc.getDocumentInfo().keys():
-                print(doc.getDocumentInfo()[self.author])
-                print(doc.getDocumentInfo()['/CreationDate'])
-                
+                try:
+                    self.doc.append(self.pdf(name, doc.getDocumentInfo()[self.author], doc.getDocumentInfo()[self.creation][2:6]))
+                except KeyError:
+                    self.doc.append(
+                        self.pdf(name, doc.getDocumentInfo()[self.author], 'N/A'))
+
+                global listdocs
+                listdocs = self.doc
 
     def main(argus):
         sct = Scratcher(argus)
@@ -123,11 +132,16 @@ class Scratcher(object):
         if docs:
             npages = sct.returlnextp(obj)
             for page in npages:
-                print(page)
+                #print(page)
                 obj = sct.returnpage(page)
                 docs += sct.returldocs(obj)
-            print(len(docs))
+                sys.stdout.write('\x1b[1;31mTotal Files found:\x1b[0m %d  \r' % len(docs))
+                time.sleep(.100)
+            sys.stdout.write('oi \n')
+            warnings.filterwarnings("ignore")
             sct.verifypdf(docs)
+            for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
+                print(item.creation+' | '+item.author)
         else:
             print("\nIt seems you are unlucky!!\n")
 
