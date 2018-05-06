@@ -152,13 +152,13 @@ class Scratcher(object):
             warnings.filterwarnings("ignore")
             print('\n')
             sct.verifypdf(docs)
-            print('\n')
+            print('\nDate \t | Username\n')
             for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
                 if item.creation is "Unknown":
-                    print(item.creation+'   |'+item.author )
+                    print(item.creation+'  |'+item.author )
                 else:
                     print(item.creation+'\t | '+item.author)
-            print('\n Finished!\n')
+            print('\n\n++++++++ Finished ++++++++\n')
         else:
             print("\nIt seems you are unlucky!!\n")
 
