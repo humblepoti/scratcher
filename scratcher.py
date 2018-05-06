@@ -4,6 +4,8 @@ import os
 import sys
 import warnings
 import time
+import click
+
 
 from io import BytesIO
 from bs4 import BeautifulSoup
@@ -58,15 +60,15 @@ class Scratcher(object):
             else:
                 print("\n Content-type of the response is: html")
         else:
-            for item in url:
-                #print(item)
-                pdf = Scratcher.downloadpdf(item)
-                if pdf is 1:
-                    print("\n Unknown error")
-                elif pdf is not None:
-                    self.parsepdf(pdf, item.rsplit('/')[-1])
-                else:
-                    print("\n Content-type of the response is: html")
+            with click.progressbar(url, label='Parsing Files. It might take some while, perhaps you should take a cup of coffee...') as barl:
+                for item in barl:
+                    pdf = Scratcher.downloadpdf(item)
+                    if pdf is 1:
+                        print("\n Unknown error")
+                    elif pdf is not None:
+                        self.parsepdf(pdf, item.rsplit('/')[-1])
+                    else:
+                        print("\n Content-type of the response is: html")
 
     def downloadpdf(url):
         try:
@@ -125,7 +127,14 @@ class Scratcher(object):
                 global listdocs
                 listdocs = self.doc
 
+    def printer(self, docs):
+        print(end='')
+        sys.stdout.write('Total Files found:\r')
+        sys.stdout.write('\t\t\t\t %d  \r' % len(docs))
+        time.sleep(.100)
+
     def main(argus):
+        sys.stdout.write('\n')
         sct = Scratcher(argus)
         obj = sct.returnpage()
         docs = sct.returldocs(obj)
@@ -135,10 +144,9 @@ class Scratcher(object):
                 #print(page)
                 obj = sct.returnpage(page)
                 docs += sct.returldocs(obj)
-                sys.stdout.write('\x1b[1;31mTotal Files found:\x1b[0m %d  \r' % len(docs))
-                time.sleep(.100)
-            sys.stdout.write('oi \n')
+                sct.printer(docs)
             warnings.filterwarnings("ignore")
+            print('\n')
             sct.verifypdf(docs)
             for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
                 print(item.creation+' | '+item.author)
