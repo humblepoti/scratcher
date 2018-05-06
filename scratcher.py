@@ -31,6 +31,8 @@ class Scratcher(object):
         self.https = 'https://'
         self.pdf = namedtuple('PDF', 'name author creation')
         self.doc = []
+        self.success = 0
+        self.failure = 0
 
 
     def returnpage(self, url=None):
@@ -56,20 +58,31 @@ class Scratcher(object):
             pdf = Scratcher.downloadpdf(url)
             if pdf is 1:
                 Scratcher.log(url,"Unknown error")
+                self.failure += 1
             elif pdf is not None:
                 self.parsepdf(pdf, url.rsplit('/')[-1])
+                self.success += 1
             else:
                 Scratcher.log(url,"Content-type of the response is: html")
+                self.failure += 1
         else:
             with click.progressbar(url, label='Parsing Files. It might take some while, perhaps you should take a cup of coffee...') as barl:
                 for item in barl:
                     pdf = Scratcher.downloadpdf(item)
                     if pdf is 1:
                         Scratcher.log(item,"Unknown error")
+                        self.failure += 1
                     elif pdf is not None:
                         self.parsepdf(pdf, item.rsplit('/')[-1])
+                        self.success += 1
                     else:
                         Scratcher.log(item, "Content-type of the response is: html")
+                        self.failure += 1
+
+        global success
+        global failure
+        success = self.success
+        failure = self.failure
 
     def downloadpdf(url):
         try:
@@ -153,12 +166,16 @@ class Scratcher(object):
             warnings.filterwarnings("ignore")
             print('\n')
             sct.verifypdf(docs)
-            print('\nDate \t | Username\n')
+            print('\nTotal Files Successfully Parsed:\t\t\t\t %d  \n' % success)
+            print('\nTotal Files Failed in Parsing:  \t\t\t\t %d  \n' % failure)
+            print('\nTotal Files With Relevant Metadata:  \t\t\t\t %d  \n' % len(listdocs))
+            print('\nDate \t |\t Username\n')
+            print('--------------------------------\n')
             for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
                 if item.creation is "Unknown":
-                    print(item.creation+'  |'+item.author )
+                    print(item.creation+'  |\t '+item.author )
                 else:
-                    print(item.creation+'\t | '+item.author)
+                    print(item.creation+'\t |\t '+item.author)
             print('\n\n++++++++ Finished ++++++++\n')
         else:
             print("\nIt seems you are unlucky!!\n")
