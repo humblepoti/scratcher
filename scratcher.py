@@ -5,12 +5,14 @@ import sys
 import warnings
 import time
 import click
+import logging
 
 
 from io import BytesIO
 from bs4 import BeautifulSoup
 from PyPDF2 import PdfFileReader
 from collections import namedtuple
+
 
 class Scratcher(object):
 
@@ -30,14 +32,13 @@ class Scratcher(object):
         self.pdf = namedtuple('PDF', 'name author creation')
         self.doc = []
 
+
     def returnpage(self, url=None):
         if not url:
             request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension, headers=self.headers)
-
         else:
             request = requests.get(url, headers=self.headers)
         bsobj = BeautifulSoup(request.text, "html.parser")
-
         return bsobj
 
     def returldocs(self, bsobj):
@@ -54,21 +55,21 @@ class Scratcher(object):
         if type(url) is not list:
             pdf = Scratcher.downloadpdf(url)
             if pdf is 1:
-                print("\n Unknown error")
+                Scratcher.log(url,"Unknown error")
             elif pdf is not None:
                 self.parsepdf(pdf, url.rsplit('/')[-1])
             else:
-                print("\n Content-type of the response is: html")
+                Scratcher.log(url,"Content-type of the response is: html")
         else:
             with click.progressbar(url, label='Parsing Files. It might take some while, perhaps you should take a cup of coffee...') as barl:
                 for item in barl:
                     pdf = Scratcher.downloadpdf(item)
                     if pdf is 1:
-                        print("\n Unknown error")
+                        Scratcher.log(item,"Unknown error")
                     elif pdf is not None:
                         self.parsepdf(pdf, item.rsplit('/')[-1])
                     else:
-                        print("\n Content-type of the response is: html")
+                        Scratcher.log(item, "Content-type of the response is: html")
 
     def downloadpdf(url):
         try:
@@ -122,7 +123,7 @@ class Scratcher(object):
                     self.doc.append(self.pdf(name, doc.getDocumentInfo()[self.author], doc.getDocumentInfo()[self.creation][2:6]))
                 except KeyError:
                     self.doc.append(
-                        self.pdf(name, doc.getDocumentInfo()[self.author], 'N/A'))
+                        self.pdf(name, doc.getDocumentInfo()[self.author], 'Unknown'))
 
                 global listdocs
                 listdocs = self.doc
@@ -133,6 +134,10 @@ class Scratcher(object):
         sys.stdout.write('\t\t\t\t %d  \r' % len(docs))
         time.sleep(.100)
 
+    def log(item, message):
+        logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
+        logging.debug('Error Reason: \t\t'+message+'\t\t caused by: \t'+item)
+
     def main(argus):
         sys.stdout.write('\n')
         sct = Scratcher(argus)
@@ -141,15 +146,19 @@ class Scratcher(object):
         if docs:
             npages = sct.returlnextp(obj)
             for page in npages:
-                #print(page)
                 obj = sct.returnpage(page)
                 docs += sct.returldocs(obj)
                 sct.printer(docs)
             warnings.filterwarnings("ignore")
             print('\n')
             sct.verifypdf(docs)
+            print('\n')
             for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
-                print(item.creation+' | '+item.author)
+                if item.creation is "Unknown":
+                    print(item.creation+'   |'+item.author )
+                else:
+                    print(item.creation+'\t | '+item.author)
+            print('\n Finished!\n')
         else:
             print("\nIt seems you are unlucky!!\n")
 
