@@ -119,14 +119,15 @@ class Scratcher(object):
     def parsepdf(self, doc, name):
         if doc.getDocumentInfo() is not None:
             if self.author in doc.getDocumentInfo().keys():
-                try:
-                    self.doc.append(self.pdf(name, doc.getDocumentInfo()[self.author], doc.getDocumentInfo()[self.creation][2:6]))
-                except KeyError:
-                    self.doc.append(
-                        self.pdf(name, doc.getDocumentInfo()[self.author], 'Unknown'))
+                if doc.getDocumentInfo()[self.author]:
+                    try:
+                        self.doc.append(self.pdf(name, doc.getDocumentInfo()[self.author], doc.getDocumentInfo()[self.creation][2:6]))
+                    except KeyError:
+                        self.doc.append(
+                            self.pdf(name, doc.getDocumentInfo()[self.author], 'Unknown'))
 
-                global listdocs
-                listdocs = self.doc
+                    global listdocs
+                    listdocs = self.doc
 
     def printer(self, docs):
         print(end='')
