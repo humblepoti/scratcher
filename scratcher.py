@@ -175,9 +175,11 @@ class Scratcher(object):
             if npages:
                 nobj = self.returnpage(npages[-1])
                 npages = npages + (self.returlnextp(nobj))
-            for page in npages:
-                obj = self.returnpage(page)
-                docs += self.returldocs(obj)
+                for page in npages:
+                    obj = self.returnpage(page)
+                    docs += self.returldocs(obj)
+                    self.printer(docs)
+            else:
                 self.printer(docs)
             warnings.filterwarnings("ignore")
             print('\n')
@@ -204,9 +206,11 @@ class Scratcher(object):
             if npages:
                 nobj = self.returnpagetor(npages[-1])
                 npages = npages + (self.returlnextp(nobj))
-            for page in npages:
-                obj = self.returnpagetor(page)
-                docs += self.returldocs(obj)
+                for page in npages:
+                    obj = self.returnpagetor(page)
+                    docs += self.returldocs(obj)
+                    self.printer(docs)
+            else:
                 self.printer(docs)
             warnings.filterwarnings("ignore")
             print('\n')
@@ -228,7 +232,6 @@ class Scratcher(object):
     def main(argus):
         sys.stdout.write('\n')
         sct = Scratcher(argus)
-        #print(sct.tor)
         if sct.tor == 'normal':
             sct.exec()
         elif sct.tor == 'tor':
