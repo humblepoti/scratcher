@@ -10,7 +10,7 @@ import logging
 
 from io import BytesIO
 from bs4 import BeautifulSoup
-from PyPDF2 import PdfFileReader
+from PyPDF2 import PdfFileReader, utils
 from collections import namedtuple
 
 
@@ -41,6 +41,9 @@ class Scratcher(object):
         else:
             request = requests.get(url, headers=self.headers)
         bsobj = BeautifulSoup(request.text, "html.parser")
+        if bsobj.findAll('a')[2]['href'].strip('//') == 'support.google.com/websearch/answer/86640':
+            sys.exit(
+                "\nGoogle has perceived that your are poking around its search engine and it is blocking you!!! Wait for some time to try again through this network.\n\n")
         return bsobj
 
     def returldocs(self, bsobj):
@@ -94,16 +97,16 @@ class Scratcher(object):
         try:
             objbyte = BytesIO(request.content)
         except Exception as e:
-            print(e)
-            return None
+            Scratcher.log(url, e)
+            sys.exit(
+                "\nThere was an error when trying to convert the content of the response.Please verify the logs to see the raised error.\n")
         try:
-            s_stdout = sys.stdout
-            sys.stdout = BytesIO()
             pdf = PdfFileReader(objbyte)
-            sys.stdout = s_stdout
-        except Exception as e:
-            print(e)
-            return None
+        except utils.PdfReadError as e:
+            Scratcher.log(url, e)
+            obje = BytesIO(request.content.strip(b'\x00'))
+            pdf = PdfFileReader(obje)
+
         if pdf.getIsEncrypted() is True:
             try:
                 pdf.decrypt('')
@@ -150,7 +153,7 @@ class Scratcher(object):
 
     def log(item, message):
         logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
-        logging.debug('Error Reason: \t\t'+message+'\t\t caused by: \t'+item)
+        logging.debug('Error Reason: \t\t'+str(message)+'\t\t caused by: \t'+item)
 
     def main(argus):
         sys.stdout.write('\n')
@@ -166,6 +169,7 @@ class Scratcher(object):
             warnings.filterwarnings("ignore")
             print('\n')
             sct.verifypdf(docs)
+            print(type(success))
             print('\nTotal Files Successfully Parsed:\t\t\t\t %d  \n' % success)
             print('\nTotal Files Failed in Parsing:  \t\t\t\t %d  \n' % failure)
             print('\nTotal Files With Relevant Metadata:  \t\t\t\t %d  \n' % len(listdocs))
@@ -178,7 +182,7 @@ class Scratcher(object):
                     print(item.creation+'\t |\t '+item.author)
             print('\n\n++++++++ Finished ++++++++\n')
         else:
-            print("\nIt seems you are unlucky!!\n")
+            sys.exit("\nIt seems you are unlucky!!\n")
 
 
 if __name__ == '__main__':
