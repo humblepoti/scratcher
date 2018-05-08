@@ -20,10 +20,13 @@ class Scratcher(object):
         self.url = 'https://www.google.com'
         self.par = '/search?q='
         self.arguments = arg
-        self.headers= {"User-Agent": "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3","Accept-Encoding": "none","Accept-Language": "en-US,en;q=0.8","Connection": "keep-alive"}
+        self.headers= {"User-Agent": "Mozilla/4.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3","Accept-Encoding": "none","Accept-Language": "en-US,en;q=0.8","Connection": "keep-alive"}
+        self.proxies = {'http' : 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
         self.domain = self.arguments.domain
+        if not self.arguments.tor:
+            self.tor = 'normal'
         if not self.arguments.extension:
-            self.arguments.extension = 'pdf'
+            self.extension = 'pdf'
         if not self.arguments.output:
             self.arguments.output = ''
         self.author = '/Author'
@@ -33,6 +36,16 @@ class Scratcher(object):
         self.doc = []
         self.success = 0
         self.failure = 0
+        self.proxies = {'http':  'socks5://127.0.0.1:9050',
+                       'https': 'socks5://127.0.0.1:9050'}
+
+    def returnpagetor(self, url=None):
+        if not url:
+            request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension, headers=self.headers, proxies=self.proxies)
+        else:
+            request = requests.get(url, headers=self.headers, proxies=self.proxies)
+        bsobj = BeautifulSoup(request.text, "html.parser")
+        return bsobj
 
 
     def returnpage(self, url=None):
@@ -113,7 +126,6 @@ class Scratcher(object):
 
             except:
                 pdf = Scratcher.handlepdf(request.content)
-
         return pdf
 
     def handlepdf(response):
@@ -152,43 +164,80 @@ class Scratcher(object):
         time.sleep(.100)
 
     def log(item, message):
-        logging.basicConfig(filename='example.log', filemode='w', level=logging.DEBUG)
+        logging.basicConfig(filename='scratcher.log', filemode='w', level=logging.DEBUG)
         logging.debug('Error Reason: \t\t'+str(message)+'\t\t caused by: \t'+item)
 
-    def main(argus):
-        sys.stdout.write('\n')
-        sct = Scratcher(argus)
-        obj = sct.returnpage()
-        docs = sct.returldocs(obj)
+    def exec(self):
+        obj = self.returnpage()
+        docs = self.returldocs(obj)
         if docs:
-            npages = sct.returlnextp(obj)
+            npages = self.returlnextp(obj)
+            nobj = self.returnpage(npages[-1])
+            npages = npages + (self.returlnextp(nobj))
             for page in npages:
-                obj = sct.returnpage(page)
-                docs += sct.returldocs(obj)
-                sct.printer(docs)
+                obj = self.returnpage(page)
+                docs += self.returldocs(obj)
+                self.printer(docs)
             warnings.filterwarnings("ignore")
             print('\n')
-            sct.verifypdf(docs)
-            print(type(success))
+            self.verifypdf(docs)
             print('\nTotal Files Successfully Parsed:\t\t\t\t %d  \n' % success)
             print('\nTotal Files Failed in Parsing:  \t\t\t\t %d  \n' % failure)
             print('\nTotal Files With Relevant Metadata:  \t\t\t\t %d  \n' % len(listdocs))
             print('\nDate \t |\t Username\n')
             print('--------------------------------\n')
-            for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
+            for item in sorted(set(listdocs), key=lambda x: x.creation, reverse=True):
                 if item.creation is "Unknown":
-                    print(item.creation+'  |\t '+item.author )
+                    print(item.creation + '  |\t ' + item.author)
                 else:
-                    print(item.creation+'\t |\t '+item.author)
+                    print(item.creation + '\t |\t ' + item.author)
             print('\n\n++++++++ Finished ++++++++\n')
         else:
             sys.exit("\nIt seems you are unlucky!!\n")
+
+    def exect(self):
+        obj = self.returnpagetor()
+        docs = self.returldocs(obj)
+        if docs:
+            npages = self.returlnextp(obj)
+            nobj = self.returnpagetor(npages[-1])
+            npages = npages + (self.returlnextp(nobj))
+            for page in npages:
+                obj = self.returnpagetor(page)
+                docs += self.returldocs(obj)
+                self.printer(docs)
+            warnings.filterwarnings("ignore")
+            print('\n')
+            self.verifypdf(docs)
+            print('\nTotal Files Successfully Parsed:\t\t\t\t %d  \n' % success)
+            print('\nTotal Files Failed in Parsing:  \t\t\t\t %d  \n' % failure)
+            print('\nTotal Files With Relevant Metadata:  \t\t\t\t %d  \n' % len(listdocs))
+            print('\nDate \t |\t Username\n')
+            print('--------------------------------\n')
+            for item in sorted(set(listdocs), key=lambda x: x.creation, reverse=True):
+                if item.creation is "Unknown":
+                    print(item.creation + '  |\t ' + item.author)
+                else:
+                    print(item.creation + '\t |\t ' + item.author)
+            print('\n\n++++++++ Finished ++++++++\n')
+        else:
+            sys.exit("\nIt seems you are unlucky!!\n")
+
+    def main(argus):
+        sys.stdout.write('\n')
+        sct = Scratcher(argus)
+        #print(sct.tor)
+        if sct.tor == 'normal':
+            sct.exec()
+        elif sct.tor == 'tor':
+            sct.exect()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="scratcher.py")
     parser.add_argument('-d', '--domain',  help='a domain to be searched',required=True)
-    parser.add_argument('-e', '--extension', help='an extension to be downloaded (default: pdf)',default='pdf')
+    parser.add_argument('-e', '--extension', help='an extension to be downloaded (default: pdf)', default='pdf')
+    parser.add_argument('-t', '--tor', help='an option to specify tor proxies (default: non-tor usage)')
     parser.add_argument('-o', '--output', help='')
     arguments = parser.parse_args()
     Scratcher.main(arguments)
