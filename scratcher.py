@@ -54,7 +54,7 @@ class Scratcher(object):
         else:
             request = requests.get(url, headers=self.headers)
         bsobj = BeautifulSoup(request.text, "html.parser")
-        if bsobj.findAll('a')[2]['href'].strip('//') == 'support.google.com/websearch/answer/86640':
+        if bsobj.findAll('a')[-1]['href'].strip('//') == 'support.google.com/websearch/answer/86640':
             sys.exit(
                 "\nGoogle has perceived that your are poking around its search engine and it is blocking you!!! Wait for some time to try again through this network.\n\n")
         return bsobj
@@ -172,8 +172,9 @@ class Scratcher(object):
         docs = self.returldocs(obj)
         if docs:
             npages = self.returlnextp(obj)
-            nobj = self.returnpage(npages[-1])
-            npages = npages + (self.returlnextp(nobj))
+            if npages:
+                nobj = self.returnpage(npages[-1])
+                npages = npages + (self.returlnextp(nobj))
             for page in npages:
                 obj = self.returnpage(page)
                 docs += self.returldocs(obj)
@@ -186,7 +187,7 @@ class Scratcher(object):
             print('\nTotal Files With Relevant Metadata:  \t\t\t\t %d  \n' % len(listdocs))
             print('\nDate \t |\t Username\n')
             print('--------------------------------\n')
-            for item in sorted(set(listdocs), key=lambda x: x.creation, reverse=True):
+            for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
                 if item.creation is "Unknown":
                     print(item.creation + '  |\t ' + item.author)
                 else:
@@ -200,8 +201,9 @@ class Scratcher(object):
         docs = self.returldocs(obj)
         if docs:
             npages = self.returlnextp(obj)
-            nobj = self.returnpagetor(npages[-1])
-            npages = npages + (self.returlnextp(nobj))
+            if npages:
+                nobj = self.returnpagetor(npages[-1])
+                npages = npages + (self.returlnextp(nobj))
             for page in npages:
                 obj = self.returnpagetor(page)
                 docs += self.returldocs(obj)
@@ -214,7 +216,7 @@ class Scratcher(object):
             print('\nTotal Files With Relevant Metadata:  \t\t\t\t %d  \n' % len(listdocs))
             print('\nDate \t |\t Username\n')
             print('--------------------------------\n')
-            for item in sorted(set(listdocs), key=lambda x: x.creation, reverse=True):
+            for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
                 if item.creation is "Unknown":
                     print(item.creation + '  |\t ' + item.author)
                 else:
