@@ -20,8 +20,9 @@ class Scratcher(object):
         self.url = 'https://www.google.com'
         self.par = '/search?num=100&q='
         self.arguments = arg
-        self.headers= {"User-Agent": "Mozilla/4.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3","Accept-Encoding": "none","Accept-Language": "en-US,en;q=0.8","Connection": "keep-alive"}
-        self.proxies = {'http' : 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
+        self.headers= {"User-Agent": "Mozilla/7.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko", "Accept":
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
+                       "Accept-Encoding": "none","Accept-Language": "en-US,en;q=0.8","Connection": "keep-alive"}
         self.domain = self.arguments.domain
         if not self.arguments.tor:
             self.tor = 'normal'
@@ -36,12 +37,12 @@ class Scratcher(object):
         self.doc = []
         self.success = 0
         self.failure = 0
-        self.proxies = {'http':  'socks5://127.0.0.1:9050',
-                       'https': 'socks5://127.0.0.1:9050'}
+        self.proxies = {'http':  'socks5://127.0.0.1:9050','https': 'socks5://127.0.0.1:9050'}
 
     def returnpagetor(self, url=None):
         if not url:
-            request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension, headers=self.headers, proxies=self.proxies)
+            request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension,
+                                   headers=self.headers, proxies=self.proxies)
         else:
             request = requests.get(url, headers=self.headers, proxies=self.proxies)
         bsobj = BeautifulSoup(request.text, "html.parser")
@@ -50,13 +51,15 @@ class Scratcher(object):
 
     def returnpage(self, url=None):
         if not url:
-            request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension, headers=self.headers)
+            request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension,
+                                   headers=self.headers)
         else:
             request = requests.get(url, headers=self.headers)
         bsobj = BeautifulSoup(request.text, "html.parser")
         if bsobj.findAll('a')[-1]['href'].strip('//') == 'support.google.com/websearch/answer/86640':
             sys.exit(
-                "\nGoogle has perceived that your are poking around its search engine and it is blocking you!!! Wait for some time to try again through this network.\n\n")
+                "\nGoogle has perceived that your are poking around its search engine and it is blocking you!!! Wait "
+                "for some time to try again through this network.\n\n")
         return bsobj
 
     def returldocs(self, bsobj):
@@ -75,6 +78,8 @@ class Scratcher(object):
             if pdf is 1:
                 Scratcher.log(url,"Unknown error")
                 self.failure += 1
+            elif pdf is 2:
+                self.failure += 1
             elif pdf is not None:
                 self.parsepdf(pdf, url.rsplit('/')[-1])
                 self.success += 1
@@ -82,11 +87,14 @@ class Scratcher(object):
                 Scratcher.log(url,"Content-type of the response is: html")
                 self.failure += 1
         else:
-            with click.progressbar(url, label='Parsing Files. It might take some while, perhaps you should take a cup of coffee...') as barl:
+            with click.progressbar(url, label='Parsing Files. It might take some while, perhaps you should take a '
+                                              'cup of coffee...') as barl:
                 for item in barl:
                     pdf = Scratcher.downloadpdf(item)
                     if pdf is 1:
                         Scratcher.log(item,"Unknown error")
+                        self.failure += 1
+                    elif pdf is 2:
                         self.failure += 1
                     elif pdf is not None:
                         self.parsepdf(pdf, item.rsplit('/')[-1])
@@ -106,24 +114,27 @@ class Scratcher(object):
             if request.headers['Content-Type'] == 'text/html':
                 return None
         except requests.exceptions.ConnectionError:
-            sys.exit("\nThere was an error when trying to connect to the domain. Please confirm if the domain is correctly written.\n")
+            sys.exit("\nThere was an error when trying to connect to the domain. Please confirm if the domain is "
+                     "correctly written.\n")
         try:
             objbyte = BytesIO(request.content)
         except Exception as e:
             Scratcher.log(url, e)
             sys.exit(
-                "\nThere was an error when trying to convert the content of the response.Please verify the logs to see the raised error.\n")
+                "\nThere was an error when trying to convert the content of the response.Please verify the logs to"
+                " see the raised error.\n")
         try:
             pdf = PdfFileReader(objbyte)
         except utils.PdfReadError as e:
             Scratcher.log(url, e)
             obje = BytesIO(request.content.strip(b'\x00'))
-            pdf = PdfFileReader(obje)
-
+            try:
+                pdf = PdfFileReader(obje)
+            except utils.PdfReadError:
+                return 2
         if pdf.getIsEncrypted() is True:
             try:
                 pdf.decrypt('')
-
             except:
                 pdf = Scratcher.handlepdf(request.content)
         return pdf
@@ -136,7 +147,10 @@ class Scratcher(object):
         out = os.system(command)
         if out is 0:
             filename = open(decfile[-1], 'rb')
-            pdf = PdfFileReader(filename)
+            try:
+                pdf = PdfFileReader(filename)
+            except utils.PdfReadError:
+                return 2
             for item in decfile:
                 os.system("rm "+item)
         else:
@@ -149,7 +163,8 @@ class Scratcher(object):
             if self.author in doc.getDocumentInfo().keys():
                 if doc.getDocumentInfo()[self.author]:
                     try:
-                        self.doc.append(self.pdf(name, doc.getDocumentInfo()[self.author], doc.getDocumentInfo()[self.creation][2:6]))
+                        self.doc.append(self.pdf(name, doc.getDocumentInfo()[self.author],
+                                                 doc.getDocumentInfo()[self.creation][2:6]))
                     except KeyError:
                         self.doc.append(
                             self.pdf(name, doc.getDocumentInfo()[self.author], 'Unknown'))
@@ -207,7 +222,9 @@ class Scratcher(object):
             npages = self.returlnextp(obj)
             if npages:
                 nobj = self.returnpagetor(npages[-1])
-                npages = npages + (self.returlnextp(nobj))
+                nextpages = [page for page in self.returlnextp(nobj) if not page in npages]
+                if nextpages:
+                    npages = npages + nextpages
                 for page in npages:
                     obj = self.returnpagetor(page)
                     docs += self.returldocs(obj)
