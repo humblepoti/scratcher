@@ -18,7 +18,7 @@ class Scratcher(object):
 
     def __init__(self, arg):
         self.url = 'https://www.google.com'
-        self.par = '/search?q='
+        self.par = '/search?num=100&q='
         self.arguments = arg
         self.headers= {"User-Agent": "Mozilla/4.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko", "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3","Accept-Encoding": "none","Accept-Language": "en-US,en;q=0.8","Connection": "keep-alive"}
         self.proxies = {'http' : 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
@@ -174,7 +174,9 @@ class Scratcher(object):
             npages = self.returlnextp(obj)
             if npages:
                 nobj = self.returnpage(npages[-1])
-                npages = npages + (self.returlnextp(nobj))
+                nextpages = [page for page in self.returlnextp(nobj) if not page in npages]
+                if nextpages:
+                    npages = npages + nextpages
                 for page in npages:
                     obj = self.returnpage(page)
                     docs += self.returldocs(obj)
@@ -194,7 +196,7 @@ class Scratcher(object):
                     print(item.creation + '  |\t ' + item.author)
                 else:
                     print(item.creation + '\t |\t ' + item.author)
-            print('\n\n++++++++ Finished ++++++++\n')
+            print('\n\n++++++++++++++++ Finished ++++++++++++++++\n')
         else:
             sys.exit("\nIt seems you are unlucky!!\n")
 
@@ -225,7 +227,7 @@ class Scratcher(object):
                     print(item.creation + '  |\t ' + item.author)
                 else:
                     print(item.creation + '\t |\t ' + item.author)
-            print('\n\n++++++++ Finished ++++++++\n')
+            print('\n\n++++++++++++++++ Finished ++++++++++++++++\n')
         else:
             sys.exit("\nIt seems you are unlucky!!\n")
 
