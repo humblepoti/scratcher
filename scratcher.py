@@ -20,14 +20,19 @@ class Scratcher(object):
         self.url = 'https://www.google.com'
         self.par = '/search?num=100&q='
         self.arguments = arg
-        self.headers= {"User-Agent": "Mozilla/7.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko", "Accept":
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
-                       "Accept-Encoding": "none","Accept-Language": "en-US,en;q=0.8","Connection": "keep-alive"}
+        self.headers = {"User-Agent": "Mozilla/7.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko",
+                       "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset":
+                            "ISO-8859-1,utf-8;q=0.7,*;q=0.3", "Accept-Encoding": "none", "Accept-Language":
+                            "en-US,en;q=0.8", "Connection": "keep-alive"}
         self.domain = self.arguments.domain
-        if not self.arguments.tor:
-            self.tor = 'normal'
+        if self.arguments.tor:
+           self.proxies = dict(http='socks5://'+self.arguments.tor, https='socks5://'+self.arguments.tor)
+        else:
+           self.arguments.tor = 'normal'
         if not self.arguments.extension:
-            self.extension = 'pdf'
+            self.arguments.extension = 'pdf'
+        else:
+            self.extension = self.arguments.extension
         if not self.arguments.output:
             self.arguments.output = ''
         self.author = '/Author'
@@ -37,7 +42,6 @@ class Scratcher(object):
         self.doc = []
         self.success = 0
         self.failure = 0
-        self.proxies = {'http':  'socks5://127.0.0.1:9050','https': 'socks5://127.0.0.1:9050'}
 
     def returnpagetor(self, url=None):
         if not url:
@@ -46,8 +50,10 @@ class Scratcher(object):
         else:
             request = requests.get(url, headers=self.headers, proxies=self.proxies)
         bsobj = BeautifulSoup(request.text, "html.parser")
-        return bsobj
-
+        if bsobj.findAll('a')[-1]['href'].strip('//') == 'support.google.com/websearch/answer/86640':
+            sys.exit(
+                "\nGoogle has perceived that your are poking around its search engine and it is blocking you!!! Wait "
+                "for some time to try again through this network.\n\n")
 
     def returnpage(self, url=None):
         if not url:
@@ -251,9 +257,9 @@ class Scratcher(object):
     def main(argus):
         sys.stdout.write('\n')
         sct = Scratcher(argus)
-        if sct.tor == 'normal':
+        if sct.arguments.tor == 'normal':
             sct.exec()
-        elif sct.tor == 'tor':
+        else:
             sct.exect()
 
 
@@ -261,7 +267,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="scratcher.py")
     parser.add_argument('-d', '--domain',  help='a domain to be searched',required=True)
     parser.add_argument('-e', '--extension', help='an extension to be downloaded (default: pdf)', default='pdf')
-    parser.add_argument('-t', '--tor', help='an option to specify tor proxies (default: non-tor usage)')
+    parser.add_argument('-t', '--tor', help='an option to specify tor proxies (default: non-tor usage). Input format '
+                                            'must be host:port')
     parser.add_argument('-o', '--output', help='')
     arguments = parser.parse_args()
     Scratcher.main(arguments)
