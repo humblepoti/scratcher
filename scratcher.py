@@ -26,13 +26,11 @@ class Scratcher(object):
                             "en-US,en;q=0.8", "Connection": "keep-alive"}
         self.domain = self.arguments.domain
         if self.arguments.tor:
-           self.proxies = dict(http='socks5://'+self.arguments.tor, https='socks5://'+self.arguments.tor)
+            self.proxies = dict(http='socks5://'+self.arguments.tor, https='socks5://'+self.arguments.tor)
         else:
            self.arguments.tor = 'normal'
-        if not self.arguments.extension:
-            self.arguments.extension = 'pdf'
-        else:
-            self.extension = self.arguments.extension
+        if not self.arguments.ext:
+            self.arguments.ext = 'pdf'
         if not self.arguments.output:
             self.arguments.output = ''
         self.author = '/Author'
@@ -45,7 +43,7 @@ class Scratcher(object):
 
     def returnpagetor(self, url=None):
         if not url:
-            request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension,
+            request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.ext,
                                    headers=self.headers, proxies=self.proxies)
         else:
             request = requests.get(url, headers=self.headers, proxies=self.proxies)
@@ -56,11 +54,18 @@ class Scratcher(object):
                 "for some time to try again through this network.\n\n")
 
     def returnpage(self, url=None):
-        if not url:
-            request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.extension,
-                                   headers=self.headers)
+        if self.arguments.tor == 'tor':
+            if not url:
+                request = requests.get(self.url + self.par + "site:" + self.domain + " ext:" + self.arguments.ext,
+                                       headers=self.headers, proxies=self.proxies)
+            else:
+                request = requests.get(url, headers=self.headers, proxies=self.proxies)
         else:
-            request = requests.get(url, headers=self.headers)
+            if not url:
+                request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.ext,
+                                       headers=self.headers)
+            else:
+                request = requests.get(url, headers=self.headers)
         bsobj = BeautifulSoup(request.text, "html.parser")
         if bsobj.findAll('a')[-1]['href'].strip('//') == 'support.google.com/websearch/answer/86640':
             sys.exit(
@@ -221,54 +226,18 @@ class Scratcher(object):
         else:
             sys.exit("\nIt seems you are unlucky!!\n")
 
-    def exect(self):
-        obj = self.returnpagetor()
-        docs = self.returldocs(obj)
-        if docs:
-            npages = self.returlnextp(obj)
-            if npages:
-                nobj = self.returnpagetor(npages[-1])
-                nextpages = [page for page in self.returlnextp(nobj) if not page in npages]
-                if nextpages:
-                    npages = npages + nextpages
-                for page in npages:
-                    obj = self.returnpagetor(page)
-                    docs += self.returldocs(obj)
-                    self.printer(docs)
-            else:
-                self.printer(docs)
-            warnings.filterwarnings("ignore")
-            print('\n')
-            self.verifypdf(docs)
-            print('\nTotal Files Successfully Parsed:\t\t\t\t %d  \n' % success)
-            print('\nTotal Files Failed in Parsing:  \t\t\t\t %d  \n' % failure)
-            print('\nTotal Files With Relevant Metadata:  \t\t\t\t %d  \n' % len(listdocs))
-            print('\nDate \t |\t Username\n')
-            print('--------------------------------\n')
-            for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
-                if item.creation is "Unknown":
-                    print(item.creation + '  |\t ' + item.author)
-                else:
-                    print(item.creation + '\t |\t ' + item.author)
-            print('\n\n++++++++++++++++ Finished ++++++++++++++++\n')
-        else:
-            sys.exit("\nIt seems you are unlucky!!\n")
-
     def main(argus):
         sys.stdout.write('\n')
         sct = Scratcher(argus)
-        if sct.arguments.tor == 'normal':
-            sct.exec()
-        else:
-            sct.exect()
+        sct.exec()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="scratcher.py")
-    parser.add_argument('-d', '--domain',  help='a domain to be searched',required=True)
-    parser.add_argument('-e', '--extension', help='an extension to be downloaded (default: pdf)', default='pdf')
-    parser.add_argument('-t', '--tor', help='an option to specify tor proxies (default: non-tor usage). Input format '
-                                            'must be host:port')
-    parser.add_argument('-o', '--output', help='')
+    parser.add_argument('-d', '--domain',  help='a domain to be searched', required=True, metavar='www.example.com')
+    parser.add_argument('-e', '--ext', help='an extension to be downloaded (default: pdf)', default='pdf', metavar='pdf')
+    parser.add_argument('-t', '--tor', help='an option to specify tor usage (default: non-tor usage)', metavar='host:'
+                                                                                                               'port')
+    parser.add_argument('-o', '--output', help='', metavar='file')
     arguments = parser.parse_args()
     Scratcher.main(arguments)
