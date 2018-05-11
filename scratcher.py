@@ -6,7 +6,7 @@ import warnings
 import time
 import click
 import logging
-
+import csv
 
 from io import BytesIO
 from bs4 import BeautifulSoup
@@ -21,9 +21,9 @@ class Scratcher(object):
         self.par = '/search?num=100&q='
         self.arguments = arg
         self.headers = {"User-Agent": "Mozilla/7.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko",
-                       "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset":
-                            "ISO-8859-1,utf-8;q=0.7,*;q=0.3", "Accept-Encoding": "none", "Accept-Language":
-                            "en-US,en;q=0.8", "Connection": "keep-alive"}
+                        "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset":
+                        "ISO-8859-1,utf-8;q=0.7,*;q=0.3", "Accept-Encoding": "none", "Accept-Language":
+                        "en-US,en;q=0.8", "Connection": "keep-alive"}
         self.domain = self.arguments.domain
         if self.arguments.tor:
             self.proxies = dict(http='socks5://'+self.arguments.tor, https='socks5://'+self.arguments.tor)
@@ -98,7 +98,7 @@ class Scratcher(object):
                 Scratcher.log(url,"Content-type of the response is: html")
                 self.failure += 1
         else:
-            with click.progressbar(url, label='Parsing Files. It might take some while, perhaps you should take a '
+            with click.progressbar(url, label='Parsing Files. It might take some while, perhaps you wanna take a '
                                               'cup of coffee...') as barl:
                 for item in barl:
                     pdf = Scratcher.downloadpdf(item)
@@ -222,9 +222,23 @@ class Scratcher(object):
                     print(item.creation + '  |\t ' + item.author)
                 else:
                     print(item.creation + '\t |\t ' + item.author)
+            self.writecsv()
             print('\n\n++++++++++++++++ Finished ++++++++++++++++\n')
         else:
             sys.exit("\nIt seems you are unlucky!!\n")
+
+    def writecsv(self):
+        listauthor = [item.author for item in sorted(listdocs, key=lambda x: x.creation, reverse=True)]
+        listauthor = set(listauthor)
+        if self.arguments.output:
+            with open(self.arguments.output, 'a') as csvfile:
+                csv_w = csv.writer(csvfile)
+                csv_w.writerow(listauthor)
+        else:
+            with open('output.csv', 'a') as csvfile:
+                csv_w = csv.writer(csvfile)
+                csv_w.writerow(listauthor)
+
 
     def main(argus):
         sys.stdout.write('\n')
@@ -238,6 +252,6 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--ext', help='an extension to be downloaded (default: pdf)', default='pdf', metavar='pdf')
     parser.add_argument('-t', '--tor', help='an option to specify tor usage (default: non-tor usage)', metavar='host:'
                                                                                                                'port')
-    parser.add_argument('-o', '--output', help='', metavar='file')
+    parser.add_argument('-o', '--output', help='a name for the output file. Default is output.csv', metavar='file.csv')
     arguments = parser.parse_args()
     Scratcher.main(arguments)
