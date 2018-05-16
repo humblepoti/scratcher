@@ -41,18 +41,6 @@ class Scratcher(object):
         self.success = 0
         self.failure = 0
 
-    def returnpagetor(self, url=None):
-        if not url:
-            request = requests.get(self.url+self.par+"site:"+self.domain+" ext:"+self.arguments.ext,
-                                   headers=self.headers, proxies=self.proxies)
-        else:
-            request = requests.get(url, headers=self.headers, proxies=self.proxies)
-        bsobj = BeautifulSoup(request.text, "html.parser")
-        if bsobj.findAll('a')[-1]['href'].strip('//') == 'support.google.com/websearch/answer/86640':
-            sys.exit(
-                "\nGoogle has perceived that your are poking around its search engine and it is blocking you!!! Wait "
-                "for some time to try again through this network.\n\n")
-
     def returnpage(self, url=None):
         if self.arguments.tor == 'tor':
             if not url:
@@ -214,15 +202,19 @@ class Scratcher(object):
             self.verifypdf(docs)
             print('\nTotal Files Successfully Parsed:\t\t\t\t %d  \n' % success)
             print('\nTotal Files Failed in Parsing:  \t\t\t\t %d  \n' % failure)
-            print('\nTotal Files With Relevant Metadata:  \t\t\t\t %d  \n' % len(listdocs))
-            print('\nDate \t |\t Username\n')
-            print('--------------------------------\n')
-            for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
-                if item.creation is "Unknown":
-                    print(item.creation + '  |\t ' + item.author)
-                else:
-                    print(item.creation + '\t |\t ' + item.author)
-            self.writecsv()
+            try:
+                listdocs
+                print('\nTotal Files With Relevant Metadata:  \t\t\t\t %d  \n' % len(listdocs))
+                print('\nDate \t |\t Username\n')
+                print('--------------------------------\n')
+                for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
+                    if item.creation is "Unknown":
+                        print(item.creation + '  |\t ' + item.author)
+                    else:
+                        print(item.creation + '\t |\t ' + item.author)
+                self.writecsv()
+            except NameError:
+                    print('\nTotal Files With Relevant Metadata:  \t\t\t\t 0  \n')
             print('\n\n++++++++++++++++ Finished ++++++++++++++++\n')
         else:
             sys.exit("\nIt seems you are unlucky!!\n")
