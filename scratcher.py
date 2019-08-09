@@ -62,12 +62,12 @@ class Scratcher(object):
         return bsobj
 
     def returldocs(self, bsobj):
-        udocument = bsobj.findAll('h3', {'class': 'r'})
+        udocument = bsobj.findAll('div', {'class': 'r'})
         urldlist = [item.a['href'] for item in udocument]
         return urldlist
 
     def returlnextp(self, bsobj):
-        nextpages = bsobj.findAll('a', {'class': 'fl'})
+        nextpages = bsobj.findAll('a', {'class': 'pn'})
         urlnplist = [self.url + item['href'] for item in nextpages if item.span is not None]
         return urlnplist
 
@@ -110,8 +110,9 @@ class Scratcher(object):
     def downloadpdf(url):
         try:
             request = requests.get(url, verify=False)
-            if request.headers['Content-Type'] == 'text/html':
-                return None
+            if 'Content-Type' in request.headers.keys():
+                if request.headers['Content-Type'] == 'text/html':
+                    return None
         except requests.exceptions.ConnectionError:
             sys.exit("\nThere was an error when trying to connect to the domain. Please confirm if the domain is "
                      "correctly written.\n")
