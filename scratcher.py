@@ -20,7 +20,7 @@ class Scratcher(object):
         self.url = 'https://www.google.com'
         self.par = '/search?num=100&q='
         self.arguments = arg
-        self.headers = {"User-Agent": "Mozilla/7.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko",
+        self.headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
                         "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Charset":
                         "ISO-8859-1,utf-8;q=0.7,*;q=0.3", "Accept-Encoding": "none", "Accept-Language":
                         "en-US,en;q=0.8", "Connection": "keep-alive"}
@@ -55,6 +55,7 @@ class Scratcher(object):
             else:
                 request = requests.get(url, headers=self.headers)
         bsobj = BeautifulSoup(request.text, "html.parser")
+        
         if bsobj.findAll('a')[-1]['href'].strip('//') == 'support.google.com/websearch/answer/86640':
             sys.exit(
                 "\nGoogle has perceived that your are poking around its search engine and it is blocking you!!! Wait "
@@ -62,22 +63,22 @@ class Scratcher(object):
         return bsobj
 
     def returldocs(self, bsobj):
-        udocument = bsobj.findAll('div', {'class': 'r'})
+        udocument = bsobj.findAll('div', {'class': 'g'})
         urldlist = [item.a['href'] for item in udocument]
         return urldlist
 
     def returlnextp(self, bsobj):
-        nextpages = bsobj.findAll('a', {'class': 'pn'})
+        nextpages = bsobj.findAll('a', {'id': 'pnnext'})
         urlnplist = [self.url + item['href'] for item in nextpages if item.span is not None]
         return urlnplist
 
     def verifypdf(self, url):
         if type(url) is not list:
             pdf = Scratcher.downloadpdf(url)
-            if pdf is 1:
+            if pdf == 1:
                 Scratcher.log(url,"Unknown error")
                 self.failure += 1
-            elif pdf is 2:
+            elif pdf == 2:
                 self.failure += 1
             elif pdf is not None:
                 self.parsepdf(pdf, url.rsplit('/')[-1])
@@ -90,10 +91,10 @@ class Scratcher(object):
                                               'cup of coffee...') as barl:
                 for item in barl:
                     pdf = Scratcher.downloadpdf(item)
-                    if pdf is 1:
+                    if pdf == 1:
                         Scratcher.log(item,"Unknown error")
                         self.failure += 1
-                    elif pdf is 2:
+                    elif pdf == 2:
                         self.failure += 1
                     elif pdf is not None:
                         self.parsepdf(pdf, item.rsplit('/')[-1])
@@ -145,7 +146,7 @@ class Scratcher(object):
             file.write(response)
         command = "qpdf --password='' --decrypt "+decfile[0]+" "+decfile[-1]
         out = os.system(command)
-        if out is 0:
+        if out == 0:
             filename = open(decfile[-1], 'rb')
             try:
                 pdf = PdfFileReader(filename)
@@ -209,7 +210,7 @@ class Scratcher(object):
                 print('\nDate \t |\t Username\n')
                 print('--------------------------------\n')
                 for item in sorted(listdocs, key=lambda x: x.creation, reverse=True):
-                    if item.creation is "Unknown":
+                    if item.creation == "Unknown":
                         print(item.creation + '  |\t ' + item.author)
                     else:
                         print(item.creation + '\t |\t ' + item.author)
